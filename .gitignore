@@ -1,0 +1,82 @@
+# ── Claude Code internal ──────────────────────────────────
+.claude/
+
+# ── Model files (too large / download separately) ─────────
+models/
+models_export/
+*.gguf
+*.safetensors
+model.gguf
+_llamafile_base
+
+# ── Dataset & sensitive identity document images ──────────
+Dataset_Images/
+Final_images/
+New_data/
+dataset/
+data/
+sample_images/
+labeled_data/
+test_images/
+sample.pdf
+
+# ── Build output ──────────────────────────────────────────
+dist/
+build/
+bundle/
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# ── Virtual environments ──────────────────────────────────
+venv/
+env/
+build_venv/
+.venv/
+
+# ── App runtime output ────────────────────────────────────
+uploads/
+filled_forms/
+extracted_photo.png
+*_converted.jpg
+
+# ── Large binaries & installers ───────────────────────────
+*.exe
+*.zip
+*.rar
+*.7z
+
+# ── Sensitive data files ──────────────────────────────────
+*.xlsx
+*.xls
+CNIC_Data*
+final_data.json
+raw_form_data.json
+raw_text.txt
+form_fields.json
+form_fields_final.json
+form_link.txt
+
+# ── Log & debug files ─────────────────────────────────────
+*.log
+build_log.txt
+finetune_log.txt
+finetune_err.txt
+_debug_ocr.txt
+_sfx_comment.txt
+
+# ── Reports (generated separately) ───────────────────────
+OCR_System_Report.pdf
+OCR_System_Report.docx
+
+# ── IDE / OS ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+desktop.ini

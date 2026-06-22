@@ -1,0 +1,24 @@
+# Use PaddlePaddle GPU image as base
+FROM paddlepaddle/paddle:3.0.0-gpu-cuda11.8-cudnn8.9-trt8.6
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for OpenCV
+RUN apt-get update && apt-get install -y libgl1-mesa-glx
+
+# Copy requirements and install Python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install PaddleOCR
+RUN pip install paddleocr
+
+# Copy entire project
+COPY . .
+
+# Expose port 5000
+EXPOSE 5000
+
+# Run Flask app
+CMD ["python", "app.py"]

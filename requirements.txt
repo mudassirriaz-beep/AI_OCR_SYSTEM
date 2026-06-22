@@ -1,0 +1,14 @@
+flask
+werkzeug
+requests
+beautifulsoup4
+opencv-python
+Pillow
+numpy
+PyMuPDF
+rapidocr-onnxruntime
+rapidfuzz
+sentence-transformers>=2.7
+easyocr>=1.7
+selenium>=4.15
+llama-cpp-python>=0.3.1

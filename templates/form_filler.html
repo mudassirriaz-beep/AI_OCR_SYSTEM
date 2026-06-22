@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Document System</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+
+    .header {
+      background: #7c3aed;
+      padding: 18px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header h1 { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    .header .sub { font-size: 0.82rem; color: #ddd6fe; margin-top: 3px; }
+    .status-dot { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #ddd6fe; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #86efac; }
+    .dot.off { background: #fca5a5; }
+
+    .container { max-width: 1000px; margin: 36px auto; padding: 0 24px; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+    .tab-btn {
+      padding: 10px 26px; border-radius: 10px 10px 0 0;
+      background: #1e293b; border: 1px solid #334155; border-bottom: none;
+      color: #94a3b8; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .tab-btn.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: #1e293b; border-radius: 0 14px 14px 14px;
+      padding: 26px 28px; border: 1px solid #334155;
+    }
+    .card.plain { border-radius: 14px; }
+    .card h2 {
+      font-size: 0.85rem; font-weight: 600; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #334155;
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.82rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+
+    .file-zone {
+      border: 2px dashed #475569; border-radius: 10px; padding: 20px;
+      text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s; position: relative;
+    }
+    .file-zone:hover { border-color: #7c3aed; background: #1a2540; }
+    .file-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .file-zone .icon { font-size: 1.8rem; margin-bottom: 6px; }
+    .file-zone .hint { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    .file-zone .fname { font-size: 0.85rem; color: #a78bfa; margin-top: 6px; font-weight: 600; }
+
+    .radio-group { display: flex; gap: 14px; flex-wrap: wrap; }
+    .radio-group label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #e2e8f0; cursor: pointer; }
+    .radio-group input[type=radio] { accent-color: #7c3aed; width: 16px; height: 16px; }
+
+    .inp {
+      width: 100%; background: #0f172a; border: 1px solid #475569;
+      border-radius: 8px; color: #e2e8f0; font-size: 0.9rem;
+      padding: 9px 14px; outline: none; transition: border-color .2s;
+    }
+    .inp:focus { border-color: #7c3aed; }
+
+    .btn-process {
+      width: 100%; padding: 14px; background: #7c3aed; color: #fff;
+      border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: opacity .2s, transform .1s; margin-top: 6px;
+    }
+    .btn-process:hover { opacity: .88; }
+    .btn-process:active { transform: scale(.97); }
+    .btn-process:disabled { opacity: .45; cursor: not-allowed; }
+
+    .results { margin-top: 24px; display: none; }
+    .conf-bar-wrap { background: #0f172a; border-radius: 99px; height: 10px; overflow: hidden; margin: 8px 0 4px; }
+    .conf-bar { height: 100%; border-radius: 99px; transition: width .6s ease; }
+    .conf-bar.high   { background: #22c55e; }
+    .conf-bar.medium { background: #f59e0b; }
+    .conf-bar.low    { background: #ef4444; }
+
+    .fields-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .fields-table th, .fields-table td {
+      text-align: left; padding: 8px 10px;
+      border-bottom: 1px solid #1e293b; font-size: 0.85rem;
+    }
+    .fields-table th { color: #64748b; font-weight: 600; background: #0f172a; }
+    .fields-table td { color: #e2e8f0; }
+
+    .btn-action {
+      display: inline-block; padding: 11px 26px; border-radius: 10px;
+      font-size: 0.9rem; font-weight: 600; text-decoration: none;
+      cursor: pointer; border: none; margin-top: 14px; transition: opacity .2s;
+    }
+    .btn-action:hover { opacity: .85; }
+    .btn-download { background: #16a34a; color: #fff; }
+    .btn-review   { background: #b45309; color: #fff; }
+
+    .spinner {
+      display: none; width: 36px; height: 36px;
+      border: 4px solid #334155; border-top-color: #7c3aed;
+      border-radius: 50%; animation: spin .8s linear infinite; margin: 20px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .log-box {
+      background: #0f172a; border-radius: 10px; padding: 14px;
+      font-size: 0.78rem; color: #64748b; font-family: 'Consolas', monospace;
+      max-height: 180px; overflow-y: auto; margin-top: 12px; border: 1px solid #1e293b;
+    }
+
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
+    .badge-review { background: #78350f; color: #fcd34d; }
+    .badge-ok     { background: #14532d; color: #86efac; }
+    .badge-err    { background: #450a0a; color: #fca5a5; }
+
+    /* URL tab specific */
+    .url-hint { font-size: 0.8rem; color: #64748b; margin-top: 5px; }
+    .fill-row { display: flex; gap: 8px; margin-bottom: 4px; align-items: center; }
+    .fill-row .tag { font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 700; }
+    .tag-ok  { background: #14532d; color: #86efac; }
+    .tag-fail{ background: #450a0a; color: #fca5a5; }
+    .tag-skip{ background: #1e3a5f; color: #93c5fd; }
+    .fill-row span { font-size: 0.82rem; color: #e2e8f0; font-family: 'Consolas', monospace; }
+
+    .screenshot-wrap { margin-top: 16px; text-align: center; }
+    .screenshot-wrap img { max-width: 100%; border-radius: 8px; border: 1px solid #334155; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>AI Document System</h1>
+    <div class="sub">CNIC &amp; Driving License → Auto-fill any form</div>
+  </div>
+  <div class="status-dot">
+    <div class="dot off" id="slm-dot"></div>
+    <span id="slm-label">Checking llama3…</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Tab buttons -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('file')">File Upload</button>
+    <button class="tab-btn"        onclick="switchTab('url')">URL Auto-Fill (Multi-Agent)</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       TAB 1 — File upload (original pipeline)
+       ════════════════════════════════════════════════════════ -->
+  <div id="tab-file" class="tab-panel active">
+    <div class="grid">
+
+      <div class="card">
+        <h2>1. Upload Files</h2>
+
+        <div class="field">
+          <label>Document Image (CNIC / DL)</label>
+          <div class="file-zone">
+            <input type="file" id="img-file" accept=".jpg,.jpeg,.png,.bmp,.tiff,.webp,.pdf" onchange="showName('img-file','img-name')">
+            <div class="icon">🪪</div>
+            <div>Drop image or click to browse</div>
+            <div class="hint">JPG · PNG · PDF · WebP · BMP · TIFF</div>
+            <div class="fname" id="img-name"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>HTML Form to Fill</label>
+          <div class="file-zone">
+            <input type="file" id="html-file" accept=".html,.htm" onchange="showName('html-file','html-name')">
+            <div class="icon">📄</div>
+            <div>Drop HTML form or click to browse</div>
+            <div class="hint">Any HTML form with named fields</div>
+            <div class="fname" id="html-name"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Document Type</label>
+          <div class="radio-group">
+            <label><input type="radio" name="doc_type" value="CNIC" checked> CNIC</label>
+            <label><input type="radio" name="doc_type" value="DL"> Driving License</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Output Filename</label>
+          <input class="inp" id="out-name" value="filled_form.html" placeholder="filled_form.html">
+        </div>
+
+        <button class="btn-process" id="btn-run" onclick="runProcess()">
+          Extract &amp; Fill Form
+        </button>
+      </div>
+
+      <div class="card">
+        <h2>2. Results</h2>
+        <div class="spinner" id="spinner"></div>
+        <div class="log-box" id="log">Waiting for processing…</div>
+
+        <div class="results" id="results">
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:.82rem;color:#94a3b8;font-weight:600">Confidence</span>
+              <span style="font-size:.82rem;font-weight:700" id="conf-pct"></span>
+            </div>
+            <div class="conf-bar-wrap"><div class="conf-bar" id="conf-bar"></div></div>
+          </div>
+          <table class="fields-table">
+            <thead><tr><th>Field</th><th>Extracted Value</th></tr></thead>
+            <tbody id="fields-body"></tbody>
+          </table>
+          <div id="action-area"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       TAB 2 — URL / Multi-Agent pipeline
+       ════════════════════════════════════════════════════════ -->
+  <div id="tab-url" class="tab-panel">
+    <div class="grid">
+
+      <div class="card">
+        <h2>1. Configure Pipeline</h2>
+
+        <div class="field">
+          <label>Document Image (CNIC / DL)</label>
+          <div class="file-zone">
+            <input type="file" id="u-img-file" accept=".jpg,.jpeg,.png,.bmp,.tiff,.webp,.pdf" onchange="showName('u-img-file','u-img-name')">
+            <div class="icon">🪪</div>
+            <div>Drop image or click to browse</div>
+            <div class="hint">JPG · PNG · PDF · WebP · BMP · TIFF</div>
+            <div class="fname" id="u-img-name"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Form URL or Path</label>
+          <input class="inp" id="u-form-url" placeholder="https://example.com/apply  or  C:\forms\apply.html">
+          <div class="url-hint">Supports: http/https URLs · local HTML paths · PDF form paths</div>
+        </div>
+
+        <div class="field">
+          <label>Document Type</label>
+          <div class="radio-group">
+            <label><input type="radio" name="u_doc_type" value="CNIC" checked> CNIC</label>
+            <label><input type="radio" name="u_doc_type" value="DL"> Driving License</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Browser Mode</label>
+          <div class="radio-group">
+            <label><input type="radio" name="u_headless" value="false" checked> Visible (watch filling)</label>
+            <label><input type="radio" name="u_headless" value="true"> Headless (background)</label>
+          </div>
+        </div>
+
+        <button class="btn-process" id="u-btn-run" onclick="runUrl()">
+          Launch Multi-Agent Pipeline
+        </button>
+
+        <div style="margin-top:18px;padding:14px;background:#0f172a;border-radius:10px;border:1px solid #1e293b">
+          <div style="font-size:0.78rem;color:#64748b;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">How it works</div>
+          <div style="font-size:0.78rem;color:#64748b;line-height:1.7">
+            <b style="color:#a78bfa">Agent 1</b> — Inspects form via Selenium, extracts all field types &amp; labels<br>
+            <b style="color:#a78bfa">Agent 2</b> — LLM (llama3) maps OCR data → correct field + format<br>
+            <b style="color:#a78bfa">Agent 3</b> — Selenium fills text, date, number, select, radio, checkbox
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2. Pipeline Results</h2>
+        <div class="spinner" id="u-spinner"></div>
+        <div class="log-box" id="u-log">Waiting for pipeline…</div>
+
+        <div class="results" id="u-results">
+
+          <!-- Confidence -->
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:.82rem;color:#94a3b8;font-weight:600">OCR Confidence</span>
+              <span style="font-size:.82rem;font-weight:700" id="u-conf-pct"></span>
+            </div>
+            <div class="conf-bar-wrap"><div class="conf-bar" id="u-conf-bar"></div></div>
+          </div>
+
+          <!-- Extracted doc fields -->
+          <table class="fields-table" style="margin-top:14px">
+            <thead><tr><th>Field</th><th>Extracted Value</th></tr></thead>
+            <tbody id="u-fields-body"></tbody>
+          </table>
+
+          <!-- Fill log -->
+          <div style="margin-top:16px">
+            <div style="font-size:0.82rem;color:#94a3b8;font-weight:600;margin-bottom:8px">Fill Log</div>
+            <div id="u-fill-log"></div>
+          </div>
+
+          <!-- Errors -->
+          <div id="u-errors-wrap" style="display:none;margin-top:12px">
+            <div style="font-size:0.82rem;color:#f87171;font-weight:600;margin-bottom:6px">Warnings / Errors</div>
+            <div id="u-errors" class="log-box" style="border-color:#450a0a;color:#fca5a5"></div>
+          </div>
+
+          <!-- Screenshot -->
+          <div id="u-screenshot-wrap" class="screenshot-wrap" style="display:none">
+            <div style="font-size:0.82rem;color:#94a3b8;font-weight:600;margin-bottom:8px">Form Screenshot</div>
+            <img id="u-screenshot" src="" alt="Filled form screenshot">
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Tab switcher ───────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      b.classList.toggle('active', (i === 0) === (name === 'file'));
+    });
+    document.getElementById('tab-file').classList.toggle('active', name === 'file');
+    document.getElementById('tab-url').classList.toggle('active',  name === 'url');
+  }
+
+  // ── Filename display ───────────────────────────────────────
+  function showName(inputId, nameId) {
+    const f = document.getElementById(inputId).files[0];
+    document.getElementById(nameId).textContent = f ? f.name : '';
+  }
+
+  // ── SLM status check ───────────────────────────────────────
+  async function checkSlm() {
+    try {
+      const r = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(3000) });
+      if (r.ok) {
+        document.getElementById('slm-dot').classList.remove('off');
+        document.getElementById('slm-label').textContent = 'llama3 ready';
+        return;
+      }
+    } catch (_) {}
+    document.getElementById('slm-dot').classList.add('off');
+    document.getElementById('slm-label').textContent = 'llama3 offline (rules-only)';
+  }
+  checkSlm();
+
+  // ── Log helpers ────────────────────────────────────────────
+  function log(id, msg) {
+    const box = document.getElementById(id);
+    box.textContent += (box.textContent.trim() ? '\n' : '') + msg;
+    box.scrollTop = box.scrollHeight;
+  }
+  function clearLog(id) { document.getElementById(id).textContent = ''; }
+
+  // ══════════════════════════════════════════════════════════
+  // TAB 1 — File-upload pipeline
+  // ══════════════════════════════════════════════════════════
+  async function runProcess() {
+    const imgFile  = document.getElementById('img-file').files[0];
+    const htmlFile = document.getElementById('html-file').files[0];
+    const docType  = document.querySelector('input[name=doc_type]:checked').value;
+    const outName  = document.getElementById('out-name').value.trim() || 'filled_form.html';
+
+    if (!imgFile)  { alert('Please select a document image.'); return; }
+    if (!htmlFile) { alert('Please select an HTML form.'); return; }
+
+    document.getElementById('btn-run').disabled = true;
+    document.getElementById('btn-run').textContent = 'Processing…';
+    document.getElementById('spinner').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    clearLog('log');
+    log('log', 'Uploading files…');
+
+    const fd = new FormData();
+    fd.append('image_file', imgFile);
+    fd.append('html_file',  htmlFile);
+    fd.append('doc_type',   docType);
+    fd.append('output_name', outName);
+
+    try {
+      log('log', 'Running OCR + extraction pipeline…');
+      const resp = await fetch('/process', { method: 'POST', body: fd });
+      const data = await resp.json();
+
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btn-run').disabled = false;
+      document.getElementById('btn-run').textContent = 'Extract & Fill Form';
+
+      if (data.error) { log('log', 'ERROR: ' + data.error); return; }
+
+      const pct = data.confidence || 0;
+      const barEl = document.getElementById('conf-bar');
+      barEl.style.width = pct + '%';
+      barEl.className = 'conf-bar ' + (pct >= 70 ? 'high' : pct >= 40 ? 'medium' : 'low');
+      document.getElementById('conf-pct').textContent = pct.toFixed(1) + '%';
+
+      const tbody = document.getElementById('fields-body');
+      tbody.innerHTML = '';
+      for (const [k, v] of Object.entries(data.fields || {})) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="color:#94a3b8">${k.replace(/_/g,' ')}</td><td>${v || '<em style="color:#475569">—</em>'}</td>`;
+        tbody.appendChild(tr);
+      }
+
+      const area = document.getElementById('action-area');
+      if (data.needs_review) {
+        log('log', 'Confidence below threshold → redirecting to Human Review…');
+        area.innerHTML = `<span class="badge badge-review">Needs Review</span><br>
+          <a class="btn-action btn-review" href="${data.review_url}">Open Review Screen →</a>`;
+      } else {
+        log('log', 'Confidence OK → form filled successfully.');
+        area.innerHTML = `<span class="badge badge-ok">Confident</span><br>
+          <a class="btn-action btn-download" href="${data.download_url}" target="_blank">Download Filled Form</a>`;
+      }
+      document.getElementById('results').style.display = 'block';
+
+    } catch (e) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btn-run').disabled = false;
+      document.getElementById('btn-run').textContent = 'Extract & Fill Form';
+      log('log', 'Network error: ' + e.message);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // TAB 2 — URL / Multi-Agent pipeline
+  // ══════════════════════════════════════════════════════════
+  async function runUrl() {
+    const imgFile  = document.getElementById('u-img-file').files[0];
+    const formUrl  = document.getElementById('u-form-url').value.trim();
+    const docType  = document.querySelector('input[name=u_doc_type]:checked').value;
+    const headless = document.querySelector('input[name=u_headless]:checked').value;
+
+    if (!imgFile)  { alert('Please select a document image.'); return; }
+    if (!formUrl)  { alert('Please enter a form URL or path.'); return; }
+
+    document.getElementById('u-btn-run').disabled = true;
+    document.getElementById('u-btn-run').textContent = 'Running pipeline…';
+    document.getElementById('u-spinner').style.display = 'block';
+    document.getElementById('u-results').style.display = 'none';
+    clearLog('u-log');
+    log('u-log', '[Agent 0] Uploading image…');
+
+    const fd = new FormData();
+    fd.append('image_file', imgFile);
+    fd.append('form_url',   formUrl);
+    fd.append('doc_type',   docType);
+    fd.append('headless',   headless);
+
+    try {
+      const startResp = await fetch('/process-url', { method: 'POST', body: fd });
+      const startData = await startResp.json();
+      if (startData.error) {
+        log('u-log', 'ERROR: ' + startData.error);
+        resetUrlBtn();
+        return;
+      }
+
+      const jobId = startData.job_id;
+      log('u-log', '[Agent 0] OCR pipeline started (job ' + jobId.slice(0,8) + '…)');
+      log('u-log', '[Agent 1] Inspecting form at: ' + formUrl);
+      log('u-log', '[Agent 2] LLM field mapping…');
+      log('u-log', '[Agent 3] Selenium filling in progress…');
+
+      // Poll until done
+      await pollJob(jobId);
+
+    } catch (e) {
+      log('u-log', 'Network error: ' + e.message);
+      resetUrlBtn();
+    }
+  }
+
+  async function pollJob(jobId) {
+    const delay = ms => new Promise(r => setTimeout(r, ms));
+    while (true) {
+      await delay(2000);
+      try {
+        const r    = await fetch('/job-status/' + jobId);
+        const data = await r.json();
+        if (data.status === 'running') continue;
+        showUrlResults(data.result || {});
+        return;
+      } catch (e) {
+        log('u-log', 'Poll error: ' + e.message);
+        resetUrlBtn();
+        return;
+      }
+    }
+  }
+
+  function showUrlResults(result) {
+    resetUrlBtn();
+    document.getElementById('u-spinner').style.display = 'none';
+
+    if (result.error) {
+      log('u-log', 'PIPELINE ERROR: ' + result.error);
+      document.getElementById('u-results').style.display = 'block';
+      return;
+    }
+
+    log('u-log', 'Pipeline complete.');
+
+    // Confidence bar
+    const pct = result.confidence || 0;
+    const bar = document.getElementById('u-conf-bar');
+    bar.style.width = pct + '%';
+    bar.className = 'conf-bar ' + (pct >= 70 ? 'high' : pct >= 40 ? 'medium' : 'low');
+    document.getElementById('u-conf-pct').textContent = pct.toFixed(1) + '%';
+
+    // Doc fields table
+    const tbody = document.getElementById('u-fields-body');
+    tbody.innerHTML = '';
+    for (const [k, v] of Object.entries(result.doc_data || {})) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="color:#94a3b8">${k.replace(/_/g,' ')}</td>
+                      <td>${v || '<em style="color:#475569">—</em>'}</td>`;
+      tbody.appendChild(tr);
+    }
+
+    // Fill log
+    const fillLog = document.getElementById('u-fill-log');
+    fillLog.innerHTML = '';
+    const fr = result.fill_result || {};
+    const filled  = fr.filled  || [];
+    const failed  = fr.failed  || [];
+    const skipped = fr.skipped || [];
+
+    filled.forEach(msg => {
+      fillLog.innerHTML += `<div class="fill-row"><span class="tag tag-ok">FILLED</span><span>${esc(msg)}</span></div>`;
+    });
+    failed.forEach(msg => {
+      fillLog.innerHTML += `<div class="fill-row"><span class="tag tag-fail">FAILED</span><span>${esc(msg)}</span></div>`;
+    });
+    skipped.forEach(msg => {
+      fillLog.innerHTML += `<div class="fill-row"><span class="tag tag-skip">SKIP</span><span>${esc(msg)}</span></div>`;
+    });
+    if (!filled.length && !failed.length && !skipped.length) {
+      fillLog.innerHTML = '<span style="color:#475569;font-size:0.82rem">No fill actions were executed.</span>';
+    }
+
+    // Errors / warnings
+    const errs = result.errors || [];
+    const errWrap = document.getElementById('u-errors-wrap');
+    if (errs.length) {
+      errWrap.style.display = 'block';
+      document.getElementById('u-errors').textContent = errs.join('\n');
+    } else {
+      errWrap.style.display = 'none';
+    }
+
+    // Screenshot (served as static file doesn't work out-of-box; show path instead)
+    const ssWrap = document.getElementById('u-screenshot-wrap');
+    const ssPath = (fr.screenshot || '').replace(/\\/g, '/');
+    if (ssPath) {
+      // Try loading as a data URI by fetching from /screenshot endpoint
+      fetch('/screenshot')
+        .then(r => r.ok ? r.blob() : null)
+        .then(blob => {
+          if (blob) {
+            document.getElementById('u-screenshot').src = URL.createObjectURL(blob);
+            ssWrap.style.display = 'block';
+          }
+        })
+        .catch(() => {});
+      log('u-log', 'Screenshot saved to: ' + ssPath);
+    }
+
+    document.getElementById('u-results').style.display = 'block';
+  }
+
+  function resetUrlBtn() {
+    document.getElementById('u-btn-run').disabled = false;
+    document.getElementById('u-btn-run').textContent = 'Launch Multi-Agent Pipeline';
+    document.getElementById('u-spinner').style.display = 'none';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
