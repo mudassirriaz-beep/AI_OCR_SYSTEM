@@ -72,7 +72,7 @@ The system uses a fine-tuned **Donut** (Document Understanding Transformer) — 
 
 The fine-tuned model (~777 MB) is **not included** in this repository due to GitHub file size limits.
 
-> **[⬇️ Download Model from Google Drive](https://drive.google.com/drive/folders/YOUR_FOLDER_ID_HERE)**
+> **[⬇️ Download Model from Google Drive](https://drive.google.com/drive/folders/1EgzD4RP5IPn1ut6aQE5KuBPcnaOLq4C3?usp=drive_link)**
 
 After downloading, place the folder at:
 
