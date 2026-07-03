@@ -42,8 +42,19 @@ build_venv/
 # ── App runtime output ────────────────────────────────────
 uploads/
 filled_forms/
+pending_review/
 extracted_photo.png
+extracted_photo.jpg
 *_converted.jpg
+
+# ── Temporary / debug document images (may contain identity data) ──
+temp.jpg
+temp_processing.jpg
+test.jpg
+vision_ready.jpg
+extracted_document.jpg
+debug_preprocessed.jpg
+error_entry.*.png
 
 # ── Large binaries & installers ───────────────────────────
 *.exe
